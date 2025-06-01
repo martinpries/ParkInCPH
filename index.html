@@ -1,1 +1,572 @@
-hello
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ParkInCPH - Find Parking in Copenhagen</title>
+    <meta name="description" content="Find and compare parking options in Copenhagen based on location, time, and cost.">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 16px;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+        }
+
+        .input-glass {
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 12px;
+        }
+
+        .input-glass:focus {
+            outline: none;
+            border-color: rgba(255, 255, 255, 0.5);
+            background: rgba(255, 255, 255, 0.25);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+            border: none;
+            border-radius: 12px;
+            padding: 12px 24px;
+            color: white;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px 0 rgba(59, 130, 246, 0.35);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px 0 rgba(59, 130, 246, 0.4);
+        }
+
+        .parking-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 16px;
+            box-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .parking-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 30px 0 rgba(0, 0, 0, 0.15);
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .grid {
+            display: grid;
+        }
+
+        .grid-cols-1 {
+            grid-template-columns: repeat(1, minmax(0, 1fr));
+        }
+
+        .lg\\:grid-cols-2 {
+            grid-template-columns: repeat(1, minmax(0, 1fr));
+        }
+
+        @media (min-width: 1024px) {
+            .lg\\:grid-cols-2 {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        @media (min-width: 768px) {
+            .md\\:grid-cols-2 {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="min-h-screen p-4">
+        <div class="container mx-auto">
+            <!-- Search Form -->
+            <div class="glass-card p-8 w-full max-w-2xl mx-auto">
+                <h1 class="text-4xl font-bold text-white text-center mb-8">
+                    🅿️ ParkInCPH
+                </h1>
+                <p class="text-white opacity-80 text-center mb-8">
+                    Find the best parking options in Copenhagen
+                </p>
+                
+                <form id="searchForm" class="space-y-6">
+                    <div>
+                        <label for="address" class="block text-white font-medium mb-2">
+                            Copenhagen Address
+                        </label>
+                        <input
+                            id="address"
+                            type="text"
+                            placeholder="e.g., Vesterbro, Nyhavn, Tivoli..."
+                            class="w-full p-4 input-glass text-white placeholder-white placeholder-opacity-60"
+                            required
+                        />
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">                        <div>
+                            <label for="arrival" class="block text-white font-medium mb-2">
+                                Arrival Date & Time
+                            </label>
+                            <input
+                                id="arrival"
+                                type="datetime-local"
+                                class="w-full p-4 input-glass text-white"
+                                step="60"
+                                required
+                            />
+                        </div>
+                        
+                        <div>
+                            <label for="departure" class="block text-white font-medium mb-2">
+                                Departure Date & Time
+                            </label>
+                            <input
+                                id="departure"
+                                type="datetime-local"
+                                class="w-full p-4 input-glass text-white"
+                                step="60"
+                                required
+                            />
+                        </div>
+                    </div>
+                    
+                    <button
+                        type="submit"
+                        class="w-full btn-primary"
+                    >
+                        Find Parking Spots
+                    </button>
+                </form>
+            </div>
+
+            <!-- Loading -->
+            <div id="loading" class="glass-card p-8 w-full max-w-2xl mx-auto mt-8 hidden">
+                <div class="text-center text-white">
+                    <h3 class="text-xl font-bold mb-2">Searching...</h3>
+                    <p class="text-white opacity-80">Finding the best parking options for you</p>
+                </div>
+            </div>
+
+            <!-- Error -->
+            <div id="error" class="glass-card p-6 w-full max-w-2xl mx-auto mt-8 hidden">
+                <div class="text-center text-red-200">
+                    <h3 class="text-xl font-bold mb-2">Error</h3>
+                    <p id="errorMessage"></p>
+                </div>
+            </div>
+
+            <!-- Results -->
+            <div id="results" class="w-full max-w-6xl mx-auto mt-8 hidden">
+                <div class="glass-card p-6 mb-6">
+                    <h2 class="text-2xl font-bold text-white mb-2" id="resultsTitle">
+                        Parking Options
+                    </h2>
+                    <p class="text-white opacity-80" id="resultsSubtitle">
+                        Found parking spots within 1km
+                    </p>
+                </div>
+                
+                <div id="parkingCards" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- Parking cards will be inserted here -->
+                </div>
+            </div>
+
+            <!-- No Results -->
+            <div id="noResults" class="glass-card p-8 w-full max-w-2xl mx-auto mt-8 hidden">
+                <div class="text-center text-white">
+                    <h3 class="text-xl font-bold mb-2">No Results</h3>
+                    <p class="text-white opacity-80" id="noResultsMessage">
+                        No parking spots found. Try a different location in Copenhagen.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Parking data
+        const parkingData = {
+            parking_spots: [
+                {
+                    name: "København Vesterbro",
+                    coordinates: [
+                        { latitude: 55.66519526124639, longitude: 12.54353968489107 },
+                        { latitude: 55.66531808872339, longitude: 12.53922885081022 }
+                    ],
+                    pricing_description: "Mandag - Fredag 08:00-18:00 16kr\\nMandag - Fredag 18:00-23:00 17kr\\nMandag - Fredag 23:00-08:00 6kr\\nLørdag 08:00 til 17:00 16kr\\nLørdag 17:00 til Mandag 08:00 0kr",
+                    pricing_standardized: {
+                        weekdays: [
+                            { times: "08:00-18:00", rate: 16, currency: "kr" },
+                            { times: "18:00-23:00", rate: 17, currency: "kr" },
+                            { times: "23:00-08:00", rate: 6, currency: "kr" }
+                        ],
+                        saturday: [
+                            { times: "08:00-17:00", rate: 16, currency: "kr" }
+                        ],
+                        weekend_nights: [
+                            { times: "17:00-08:00", rate: 0, currency: "kr" }
+                        ]
+                    }
+                },
+                {
+                    name: "Carlsberg Byen",
+                    coordinates: [
+                        { latitude: 55.66675509070274, longitude: 12.536756465807024 }
+                    ],
+                    pricing_description: "Timeprisen er pr. påbegyndt time:\\nMandag-fredag kl. 00-24: kr. 27\\nLørdag-søndag kl. 00-24: kr. 14,50",
+                    pricing_standardized: {
+                        weekdays: [
+                            { times: "00:00-24:00", rate: 27.0, currency: "kr" }
+                        ],
+                        weekend: [
+                            { times: "00:00-24:00", rate: 14.50, currency: "kr" }
+                        ]
+                    }
+                },
+                {
+                    name: "Frederiksberg",
+                    coordinates: [
+                        { latitude: 55.668866103512826, longitude: 12.530515569648486 }
+                    ],
+                    pricing_description: "Mandag til Fredag 07:00 til 24:00\\nLørdag 07:00 til 17:00\\nAndre tider er gratis.\\nMaks 110 kr per dag og 550 kr per uge\\n1. time: 5 kr\\n2. time: 10 kr\\n3. time: 15 kr\\n4. time: 20 kr\\n5. time: 25 kr\\n6. time: 25 kr",
+                    pricing_standardized: {
+                        weekdays: [
+                            {
+                                times: "07:00-24:00",
+                                hourly_rates: { 1: 5, 2: 10, 3: 15, 4: 20, 5: 25, 6: 25 },
+                                currency: "kr",
+                                max_daily: 110
+                            }
+                        ],
+                        saturday: [
+                            {
+                                times: "07:00-17:00",
+                                hourly_rates: { 1: 5, 2: 10, 3: 15, 4: 20, 5: 25, 6: 25 },
+                                currency: "kr"
+                            }
+                        ],
+                        other_times: [
+                            { times: "00:00-07:00", rate: 0, currency: "kr" },
+                            { times: "17:00-00:00", rate: 0, currency: "kr" }
+                        ]
+                    }
+                }
+            ]
+        };
+
+        // Mock geocoding
+        const mockAddresses = {
+            'vesterbro': { latitude: 55.6663, longitude: 12.5419, address: 'Vesterbro, Copenhagen' },
+            'copenhagen central': { latitude: 55.6761, longitude: 12.5683, address: 'Copenhagen Central Station' },
+            'nyhavn': { latitude: 55.6796, longitude: 12.5912, address: 'Nyhavn, Copenhagen' },
+            'tivoli': { latitude: 55.6738, longitude: 12.5681, address: 'Tivoli Gardens, Copenhagen' },
+            'frederiksberg': { latitude: 55.6785, longitude: 12.5329, address: 'Frederiksberg, Copenhagen' },
+            'carlsberg': { latitude: 55.6668, longitude: 12.5368, address: 'Carlsberg Byen, Copenhagen' }
+        };
+
+        function geocodeAddress(address) {
+            const searchKey = address.toLowerCase();
+            for (const [key, result] of Object.entries(mockAddresses)) {
+                if (searchKey.includes(key) || key.includes(searchKey)) {
+                    return result;
+                }
+            }
+            return { latitude: 55.6761, longitude: 12.5683, address: 'Copenhagen, Denmark' };
+        }
+
+        // Distance calculation
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371;
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+                Math.sin(dLon/2) * Math.sin(dLon/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            return R * c;
+        }
+
+        function findClosestDistance(targetLat, targetLon, coordinates) {
+            let minDistance = Infinity;
+            for (const coord of coordinates) {
+                const distance = calculateDistance(targetLat, targetLon, coord.latitude, coord.longitude);
+                if (distance < minDistance) {
+                    minDistance = distance;
+                }
+            }
+            return minDistance;
+        }
+
+        // Parking cost calculation
+        function parseTime(timeStr) {
+            const [hours, minutes] = timeStr.split(':').map(Number);
+            return hours + minutes / 60;
+        }
+
+        function parseTimeRange(rangeStr) {
+            const [startStr, endStr] = rangeStr.split('-');
+            let start = parseTime(startStr);
+            let end = parseTime(endStr);
+            if (end <= start) {
+                end += 24;
+            }
+            return { start, end };
+        }
+
+        function getDayType(date) {
+            const dayOfWeek = date.getDay();
+            if (dayOfWeek === 0) return 'sunday';
+            if (dayOfWeek === 6) return 'saturday';
+            if (dayOfWeek >= 1 && dayOfWeek <= 5) return 'weekdays';
+            return 'weekend';
+        }
+
+        function calculateHourlyRateCost(hours, hourlyRates, maxDaily) {
+            let totalCost = 0;
+            let remainingHours = hours;
+            let hourCount = 1;
+            
+            while (remainingHours > 0 && hourlyRates[hourCount]) {
+                const hoursAtThisRate = Math.min(1, remainingHours);
+                totalCost += hoursAtThisRate * hourlyRates[hourCount];
+                remainingHours -= hoursAtThisRate;
+                hourCount++;
+            }
+            
+            if (remainingHours > 0) {
+                const lastRate = hourlyRates[Math.max(...Object.keys(hourlyRates).map(Number))];
+                totalCost += remainingHours * lastRate;
+            }
+            
+            if (maxDaily && totalCost > maxDaily) {
+                totalCost = maxDaily;
+            }
+            
+            return totalCost;
+        }
+
+        function findApplicablePricingRule(date, hour, spot) {
+            const dayType = getDayType(date);
+            const pricing = spot.pricing_standardized;
+            const ruleTypes = [dayType, 'weekend', 'other_times'];
+            
+            for (const ruleType of ruleTypes) {
+                const rules = pricing[ruleType];
+                if (!rules) continue;
+                
+                for (const rule of rules) {
+                    const { start, end } = parseTimeRange(rule.times);
+                    if ((hour >= start && hour < end) || (end > 24 && (hour >= start || hour < (end - 24)))) {
+                        return rule;
+                    }
+                }
+            }
+            return null;
+        }
+
+        function calculateParkingCost(spot, arrivalDate, departureDate) {
+            const costBreakdown = [];
+            let totalCost = 0;
+            
+            const diffHours = Math.ceil((departureDate - arrivalDate) / (1000 * 60 * 60));
+            const currentHour = arrivalDate.getHours() + arrivalDate.getMinutes() / 60;
+            
+            const rule = findApplicablePricingRule(arrivalDate, currentHour, spot);
+            
+            if (rule) {
+                let periodCost = 0;
+                
+                if (rule.hourly_rates) {
+                    periodCost = calculateHourlyRateCost(diffHours, rule.hourly_rates, rule.max_daily);
+                } else if (rule.rate !== undefined) {
+                    periodCost = diffHours * rule.rate;
+                }
+                
+                costBreakdown.push({
+                    period: arrivalDate.toLocaleDateString() + ' - ' + departureDate.toLocaleDateString(),
+                    hours: diffHours,
+                    rate: rule.rate || 0,
+                    cost: periodCost
+                });
+                
+                totalCost += periodCost;
+            }
+            
+            return { spot, totalCost, costBreakdown, distance: 0 };
+        }
+
+        // UI Functions
+        function hideAllSections() {
+            document.getElementById('loading').classList.add('hidden');
+            document.getElementById('error').classList.add('hidden');
+            document.getElementById('results').classList.add('hidden');
+            document.getElementById('noResults').classList.add('hidden');
+        }
+
+        function showError(message) {
+            hideAllSections();
+            document.getElementById('errorMessage').textContent = message;
+            document.getElementById('error').classList.remove('hidden');
+        }        function showLoading() {
+            hideAllSections();
+            document.getElementById('loading').classList.remove('hidden');
+        }
+        
+        function createParkingCard(result, rank) {
+            const { spot, totalCost, costBreakdown, distance } = result;
+            const badges = {
+                1: { text: '🥇 Best Value', color: 'bg-yellow-500' },
+                2: { text: '🥈 Second Best', color: 'bg-gray-400' },
+                3: { text: '🥉 Third Best', color: 'bg-amber-600' }
+            };
+            const badge = badges[rank] || { text: `#${rank}`, color: 'bg-blue-500' };
+            
+            return `
+                <div class="parking-card p-6">
+                    <div class="flex justify-between items-start mb-4">
+                        <div>
+                            <div class="inline-block px-3 py-1 rounded-full text-white text-sm font-medium mb-2 ${badge.color}">
+                                ${badge.text}
+                            </div>
+                            <h3 class="text-xl font-bold text-gray-800">${spot.name}</h3>
+                            <p class="text-gray-600">
+                                📍 ${distance.toFixed(2)}km away
+                            </p>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-3xl font-bold text-gray-800">
+                                ${Math.round(totalCost)} kr
+                            </div>
+                            <div class="text-gray-600 text-sm">total cost</div>
+                        </div>
+                    </div>
+                    
+                    <div class="border-t pt-4">
+                        <h4 class="font-semibold text-gray-700 mb-2">Pricing Details:</h4>
+                        <div class="text-sm text-gray-600 mb-3" style="white-space: pre-line;">
+                            ${spot.pricing_description.replace(/\\n/g, '\n')}
+                        </div>
+                        
+                        <div class="mt-4 pt-4 border-t">
+                            <div class="text-xs text-gray-500">
+                                Coordinates: ${spot.coordinates.map(c => `${c.latitude.toFixed(4)}, ${c.longitude.toFixed(4)}`).join(' | ')}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }        function showResults(results, searchAddress) {
+            hideAllSections();
+            
+            if (results.length === 0) {
+                document.getElementById('noResultsMessage').textContent = 
+                    `No parking spots found within 1km of "${searchAddress}". Try a different location in Copenhagen.`;
+                document.getElementById('noResults').classList.remove('hidden');
+                return;
+            }
+            
+            document.getElementById('resultsTitle').textContent = `Parking Options Near "${searchAddress}"`;
+            document.getElementById('resultsSubtitle').textContent = 
+                `Found ${results.length} parking spot${results.length !== 1 ? 's' : ''} within 1km`;
+            
+            const sortedResults = results.sort((a, b) => a.totalCost - b.totalCost);
+            const cardsHtml = sortedResults.map((result, index) => 
+                createParkingCard(result, index + 1)
+            ).join('');
+            
+            document.getElementById('parkingCards').innerHTML = cardsHtml;
+            document.getElementById('results').classList.remove('hidden');
+        }// Main search function
+        async function handleSearch(address, arrivalDate, departureDate) {
+            console.log('handleSearch called with:', { address, arrivalDate, departureDate }); // Debug log
+            showLoading();
+            
+            try {
+                const geocodeResult = geocodeAddress(address);
+                console.log('Geocode result:', geocodeResult); // Debug log
+                
+                if (!geocodeResult) {
+                    throw new Error('Could not find location for the provided address');
+                }
+                
+                const arrival = new Date(arrivalDate);
+                const departure = new Date(departureDate);
+                
+                console.log('Parsed dates:', { arrival, departure }); // Debug log
+                
+                if (departure <= arrival) {
+                    throw new Error('Departure time must be after arrival time');
+                }
+                
+                const nearbySpots = parkingData.parking_spots.filter(spot => {
+                    const distance = findClosestDistance(geocodeResult.latitude, geocodeResult.longitude, spot.coordinates);
+                    return distance <= 1;
+                }).map(spot => ({
+                    ...spot,
+                    distance: findClosestDistance(geocodeResult.latitude, geocodeResult.longitude, spot.coordinates)
+                }));
+                
+                console.log('Nearby spots:', nearbySpots); // Debug log
+                
+                const calculations = nearbySpots.map(spot => {
+                    const calculation = calculateParkingCost(spot, arrival, departure);
+                    return { ...calculation, distance: spot.distance };
+                });
+                
+                console.log('Calculations:', calculations); // Debug log
+                
+                setTimeout(() => showResults(calculations, address), 500); // Simulate loading
+            } catch (err) {
+                console.error('Error in handleSearch:', err); // Debug log
+                setTimeout(() => showError(err.message), 500);
+            }
+        }
+
+        // Initialize the form
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set default dates
+            const now = new Date();
+            const later = new Date(now.getTime() + 2 * 60 * 60 * 1000);
+            
+            const formatDateTime = (date) => {
+                return date.toISOString().slice(0, 16);
+            };
+            
+            document.getElementById('arrival').value = formatDateTime(now);
+            document.getElementById('departure').value = formatDateTime(later);
+              // Handle form submission
+            document.getElementById('searchForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                console.log('Form submitted'); // Debug log
+                
+                const address = document.getElementById('address').value;
+                const arrivalDate = document.getElementById('arrival').value;
+                const departureDate = document.getElementById('departure').value;
+                
+                console.log('Form values:', { address, arrivalDate, departureDate }); // Debug log
+                
+                if (address && arrivalDate && departureDate) {
+                    console.log('Calling handleSearch'); // Debug log
+                    handleSearch(address, arrivalDate, departureDate);
+                } else {
+                    console.log('Missing required fields'); // Debug log
+                }
+            });
+        });
+    </script>
+</body>
+</html>

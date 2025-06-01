@@ -1,0 +1,35 @@
+# Project Requirements: ParkInCPH
+
+## 1. Overview
+ParkInCPH is a web application designed to help users find and compare parking options in Copenhagen based on location, time, and cost.
+
+## 2. Core Functionality
+- **Address Input:** Users can input a Copenhagen address.
+- **Proximity Search:** The application identifies parking options within a 1-kilometer radius of the provided address.
+- **Time-Based Calculation:** Users input arrival and departure dates and times.
+- **Cost Calculation:** The application calculates the parking cost for each option based on its pricing schema and the specified time frame.
+- **Parking Spot Information:** Display parking spot details including:
+    - Name
+    - Pricing schema
+    - GPS coordinates (potentially multiple coordinates for area-based parking)
+- **Map Integration:** (Future Implementation) Display parking options on a map.
+
+## 3. Technical Requirements
+- **Framework:** Next.js
+- **Repository:** GitHub
+- **Deployment:** GitHub Pages (with GitHub Actions for automated deployment)
+- **Frontend:**
+    - Slick, modern, and minimalistic user interface.
+- **Mapping Library:** Leaflet.js
+
+## 4. Data Requirements
+- **Parking Spot Data:**
+    - Name (string)
+    - Pricing schema (data structure to define pricing, e.g., hourly rates, daily rates, zone-based rates)
+    - GPS Coordinates (array of lat/lon pairs OR a representation of a parking area)
+
+## 5. Deployment Workflow
+- GitHub Actions workflow to automatically build and deploy the Next.js application to GitHub Pages on each push to the main branch.
+
+## 6. Future Considerations
+- Map integration to visually display parking options.

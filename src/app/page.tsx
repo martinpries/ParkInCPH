@@ -13,12 +13,12 @@ export default function HomePage() {
   const [results, setResults] = useState<ParkingCalculation[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [searchAddress, setSearchAddress] = useState('');
-  const [error, setError] = useState<string | null>(null);
-
-  const handleSearch = async (address: string, arrivalDate: string, departureDate: string) => {
+  const [lastMaxDistance, setLastMaxDistance] = useState(1);
+  const [error, setError] = useState<string | null>(null);  const handleSearch = async (address: string, arrivalDate: string, departureDate: string, maxDistance: number) => {
     setIsLoading(true);
     setError(null);
     setSearchAddress(address);
+    setLastMaxDistance(maxDistance);
     
     try {
       // Geocode the address
@@ -30,12 +30,12 @@ export default function HomePage() {
       // Load parking data
       const parkingData = await loadParkingData();
       
-      // Filter spots within 1km radius
+      // Filter spots within specified radius
       const nearbySpots = filterParkingSpotsWithinRadius(
         geocodeResult.latitude,
         geocodeResult.longitude,
         parkingData.parking_spots,
-        1 // 1km radius
+        maxDistance
       );
       
       // Calculate costs for each spot
@@ -87,10 +87,9 @@ export default function HomePage() {
         {!isLoading && results.length === 0 && !error && searchAddress && (
           <div className="glass-card p-8 w-full max-w-2xl mx-auto mt-8">
             <div className="text-center text-white">
-              <h3 className="text-xl font-bold mb-2">No Results</h3>
-              <p className="text-white/80">
-                No parking spots found within 1km of "{searchAddress}". 
-                Try a different location in Copenhagen.
+              <h3 className="text-xl font-bold mb-2">No Results</h3>              <p className="text-white/80">
+                No parking spots found within {lastMaxDistance}km of "{searchAddress}". 
+                Try increasing the distance or a different location in Copenhagen.
               </p>
             </div>
           </div>

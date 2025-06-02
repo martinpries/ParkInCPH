@@ -202,17 +202,16 @@ export function calculateParkingCost(
         if (progression.max_daily && hourlyRate > progression.max_daily) {
           hourlyRate = progression.max_daily;
         }
-        
-        costBreakdown.push({
+          costBreakdown.push({
           period: `${format(arrivalDate, 'MMM dd HH:mm')} - ${format(departureDate, 'MMM dd HH:mm')}`,
-          hours: totalHours,
-          rate: hourlyRate / totalHours,
-          cost: hourlyRate
+          hours: Math.round(totalHours * 10) / 10,
+          rate: Math.round((hourlyRate / totalHours) * 10) / 10,
+          cost: Math.round(hourlyRate * 10) / 10
         });
-        
+
         return {
           spot,
-          totalCost: hourlyRate,
+          totalCost: Math.round(hourlyRate * 10) / 10,
           costBreakdown,
           distance: 0
         };
@@ -258,12 +257,11 @@ export function calculateParkingCost(
       } else if (isFirstHour && getsFreeFirstHour && Math.ceil(hoursInPeriod) >= 1) {
         periodDescription += ' (første time gratis)';
       }
-      
-      costBreakdown.push({
+        costBreakdown.push({
         period: periodDescription,
-        hours: hoursInPeriod,
-        rate: rate,
-        cost: periodCost
+        hours: Math.round(hoursInPeriod * 10) / 10,
+        rate: Math.round(rate * 10) / 10,
+        cost: Math.round(periodCost * 10) / 10
       });
       
       totalCost += periodCost;
@@ -272,10 +270,9 @@ export function calculateParkingCost(
     
     currentTime = periodEndTime;
   }
-  
-  return {
+    return {
     spot,
-    totalCost,
+    totalCost: Math.round(totalCost * 10) / 10,
     costBreakdown,
     distance: 0 // Will be set by the calling function
   };

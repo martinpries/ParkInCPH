@@ -3,14 +3,14 @@
 import React from 'react';
 
 interface SearchFormProps {
-  onSearch: (address: string, arrivalDate: string, departureDate: string) => void;
+  onSearch: (address: string, arrivalDate: string, departureDate: string, maxDistance: number) => void;
   isLoading: boolean;
 }
 
-export default function SearchForm({ onSearch, isLoading }: SearchFormProps) {
-  const [address, setAddress] = React.useState('');
+export default function SearchForm({ onSearch, isLoading }: SearchFormProps) {  const [address, setAddress] = React.useState('');
   const [arrivalDate, setArrivalDate] = React.useState('');
   const [departureDate, setDepartureDate] = React.useState('');
+  const [maxDistance, setMaxDistance] = React.useState(1); // Default 1 km
 
   React.useEffect(() => {
     // Set default dates to current time and 2 hours later
@@ -24,11 +24,10 @@ export default function SearchForm({ onSearch, isLoading }: SearchFormProps) {
     setArrivalDate(formatDateTime(now));
     setDepartureDate(formatDateTime(later));
   }, []);
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (address && arrivalDate && departureDate) {
-      onSearch(address, arrivalDate, departureDate);
+      onSearch(address, arrivalDate, departureDate, maxDistance);
     }
   };
 
@@ -84,6 +83,27 @@ export default function SearchForm({ onSearch, isLoading }: SearchFormProps) {
               className="w-full p-4 input-glass text-white"
               required
             />
+          </div>        </div>
+        
+        <div>
+          <label htmlFor="distance" className="block text-white font-medium mb-2">
+            Maximum Distance: {maxDistance} km
+          </label>
+          <div className="relative">
+            <input
+              id="distance"
+              type="range"
+              min="0.1"
+              max="5"
+              step="0.1"
+              value={maxDistance}
+              onChange={(e) => setMaxDistance(parseFloat(e.target.value))}
+              className="w-full h-2 bg-white/20 rounded-lg appearance-none cursor-pointer slider"
+            />
+            <div className="flex justify-between text-white/60 text-sm mt-1">
+              <span>0.1 km</span>
+              <span>5 km</span>
+            </div>
           </div>
         </div>
         

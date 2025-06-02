@@ -4,28 +4,76 @@ export interface GeocodeResult {
   address: string;
 }
 
-// Mock geocoding function - in a real app, you'd use a proper geocoding service
+interface NominatimResponse {
+  lat: string;
+  lon: string;
+  display_name: string;
+  importance: number;
+}
+
+// Real geocoding function using OpenStreetMap Nominatim API
 export async function geocodeAddress(address: string): Promise<GeocodeResult | null> {
-  // For demo purposes, we'll provide some predefined Copenhagen addresses
-  const mockAddresses: { [key: string]: GeocodeResult } = {
-    'vesterbro': { latitude: 55.6663, longitude: 12.5419, address: 'Vesterbro, Copenhagen' },
-    'copenhagen central': { latitude: 55.6761, longitude: 12.5683, address: 'Copenhagen Central Station' },
-    'nyhavn': { latitude: 55.6796, longitude: 12.5912, address: 'Nyhavn, Copenhagen' },
-    'tivoli': { latitude: 55.6738, longitude: 12.5681, address: 'Tivoli Gardens, Copenhagen' },
-    'frederiksberg': { latitude: 55.6785, longitude: 12.5329, address: 'Frederiksberg, Copenhagen' },
-    'carlsberg': { latitude: 55.6668, longitude: 12.5368, address: 'Carlsberg Byen, Copenhagen' }
-  };
-  
-  // Simple matching - in a real app, this would call a geocoding API
-  const searchKey = address.toLowerCase();
-  
-  for (const [key, result] of Object.entries(mockAddresses)) {
-    if (searchKey.includes(key) || key.includes(searchKey)) {
-      return result;
+  try {
+    // Clean and format the address for better results
+    const cleanAddress = address.trim();
+    if (!cleanAddress) {
+      return null;
     }
+
+    // Add Copenhagen to the search if not already included
+    const searchQuery = cleanAddress.toLowerCase().includes('copenhagen') || 
+                       cleanAddress.toLowerCase().includes('københavn') || 
+                       cleanAddress.toLowerCase().includes('denmark') || 
+                       cleanAddress.toLowerCase().includes('danmark')
+      ? cleanAddress
+      : `${cleanAddress}, Copenhagen, Denmark`;
+
+    // Use Nominatim API with parameters optimized for Danish addresses
+    const encodedQuery = encodeURIComponent(searchQuery);
+    const url = `https://nominatim.openstreetmap.org/search?` +
+      `q=${encodedQuery}&` +
+      `format=json&` +
+      `limit=5&` +
+      `countrycodes=dk&` +
+      `addressdetails=1&` +
+      `bounded=1&` +
+      `viewbox=12.2,55.5,12.8,55.8&` + // Bounding box for Copenhagen area
+      `email=parkincph@example.com`; // Required by Nominatim terms of use
+
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent': 'ParkInCPH/1.0 (Copenhagen Parking App)'
+      }
+    });
+
+    if (!response.ok) {
+      console.error('Geocoding API error:', response.status, response.statusText);
+      return getDefaultLocation();
+    }
+
+    const data: NominatimResponse[] = await response.json();
+
+    if (!data || data.length === 0) {
+      console.warn('No geocoding results found for:', address);
+      return getDefaultLocation();
+    }
+
+    // Return the best result (Nominatim sorts by relevance/importance)
+    const result = data[0];
+    return {
+      latitude: parseFloat(result.lat),
+      longitude: parseFloat(result.lon),
+      address: result.display_name
+    };
+
+  } catch (error) {
+    console.error('Geocoding error:', error);
+    return getDefaultLocation();
   }
-  
-  // Default to Copenhagen center if no match found
+}
+
+// Fallback to Copenhagen city center if geocoding fails
+function getDefaultLocation(): GeocodeResult {
   return {
     latitude: 55.6761,
     longitude: 12.5683,

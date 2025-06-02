@@ -1,4 +1,4 @@
-import { ParkingSpot, PricingRule, ParkingCalculation } from '@/types/parking';
+import { ParkingSpot, ParkingCalculation } from '@/types/parking';
 
 // Simple date utilities to replace date-fns
 function format(date: Date, pattern: string): string {
@@ -65,56 +65,101 @@ function getDayType(date: Date): 'weekdays' | 'saturday' | 'sunday' | 'weekend' 
   return 'weekend';
 }
 
-// Calculate cost for a specific time period using hourly rates
-function calculateHourlyRateCost(hours: number, hourlyRates: { [hour: number]: number }, maxDaily?: number): number {
-  let totalCost = 0;
-  let remainingHours = hours;
-  let hourCount = 1;
+// Check if a date is a holiday
+function isHoliday(date: Date): boolean {
+  const month = date.getMonth() + 1; // getMonth() returns 0-11
+  const day = date.getDate();
   
-  while (remainingHours > 0 && hourlyRates[hourCount]) {
-    const hoursAtThisRate = Math.min(1, remainingHours);
-    totalCost += hoursAtThisRate * hourlyRates[hourCount];
-    remainingHours -= hoursAtThisRate;
-    hourCount++;
-  }
-  
-  // If there are remaining hours and we have a rate for hour 6+, use that
-  if (remainingHours > 0) {
-    const lastRate = hourlyRates[Math.max(...Object.keys(hourlyRates).map(Number))];
-    totalCost += remainingHours * lastRate;
-  }
-  
-  // Apply daily maximum if specified
-  if (maxDaily && totalCost > maxDaily) {
-    totalCost = maxDaily;
-  }
-  
-  return totalCost;
+  // Christmas Eve (December 24) and New Year's Day (January 1)
+  return (month === 12 && day === 24) || (month === 1 && day === 1);
 }
 
-// Find applicable pricing rule for a given time on a specific day
-function findApplicablePricingRule(date: Date, hour: number, spot: ParkingSpot): PricingRule | null {
-  const dayType = getDayType(date);
-  const pricing = spot.pricing_standardized;
+// Check if a date is completely free (holiday for spots that have free holiday periods)
+function isCompletelyFree(date: Date, spot: ParkingSpot): boolean {
+  const pricing = spot.pricing_rules;
+  if (!pricing?.special_periods?.free_periods) return false;
   
-  // Try different rule types in order of specificity
-  const ruleTypes = [dayType, 'weekend', 'other_times'];
+  const month = date.getMonth() + 1;
+  const day = date.getDate();
+  const dateStr = `${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
   
-  for (const ruleType of ruleTypes) {
-    const rules = pricing[ruleType as keyof typeof pricing];
-    if (!rules) continue;
-    
-    for (const rule of rules) {
-      const { start, end } = parseTimeRange(rule.times);
+  // Check if this date is in the free periods
+  for (const freePeriod of pricing.special_periods.free_periods) {
+    if (freePeriod.dates && freePeriod.dates.includes(dateStr)) {
+      return true;
+    }
+  }
+  
+  return false;
+}
+
+// Check if parking qualifies for free first hour
+function qualifiesForFreeFirstHour(arrivalDate: Date, spot: ParkingSpot): boolean {
+  const pricing = spot.pricing_rules;
+  if (!pricing?.special_periods?.free_first_hour) return false;
+  
+  const dayOfWeek = getDay(arrivalDate);
+  const hour = arrivalDate.getHours();
+  
+  // Check for Saturday 17:00 to Monday 08:00 period
+  for (const freeFirstHourRule of pricing.special_periods.free_first_hour) {
+    if (freeFirstHourRule.period === "saturday_17:00_to_monday_08:00") {
+      // Saturday after 17:00
+      if (dayOfWeek === 6 && hour >= 17) return true;
+      // Sunday (all day)
+      if (dayOfWeek === 0) return true;
+      // Monday before 08:00
+      if (dayOfWeek === 1 && hour < 8) return true;
+    }
+  }
+  
+  return false;
+}
+
+// Get rate for a specific time and day
+function getRate(date: Date, hour: number, spot: ParkingSpot): number {
+  const pricing = spot.pricing_rules;
+  
+  // First check if it's completely free (holiday)
+  if (isCompletelyFree(date, spot)) {
+    return 0;
+  }
+    // Check base rates
+  if (pricing.base_rates) {
+    // Check if it's the simple time-based structure
+    if (typeof Object.values(pricing.base_rates)[0] === 'number') {
+      // Simple time-based rates (like Vesterbro)
+      const rates = pricing.base_rates as { [timeRange: string]: number };
+      for (const [timeRange, rate] of Object.entries(rates)) {
+        const { start, end } = parseTimeRange(timeRange);
+        if ((hour >= start && hour < end) || (end > 24 && (hour >= start || hour < (end - 24)))) {
+          return rate;
+        }
+      }
+    } else {
+      // Day-specific rates (like Carlsberg)
+      const dayBasedRates = pricing.base_rates as { weekdays?: { [timeRange: string]: number }; weekends?: { [timeRange: string]: number } };
+      const dayType = getDayType(date);
       
-      // Check if the hour falls within this time range
-      if ((hour >= start && hour < end) || (end > 24 && (hour >= start || hour < (end - 24)))) {
-        return rule;
+      if ((dayType === 'saturday' || dayType === 'sunday') && dayBasedRates.weekends) {
+        for (const [timeRange, rate] of Object.entries(dayBasedRates.weekends)) {
+          const { start, end } = parseTimeRange(timeRange);
+          if ((hour >= start && hour < end) || (end > 24 && (hour >= start || hour < (end - 24)))) {
+            return rate;
+          }
+        }
+      } else if (dayBasedRates.weekdays) {
+        for (const [timeRange, rate] of Object.entries(dayBasedRates.weekdays)) {
+          const { start, end } = parseTimeRange(timeRange);
+          if ((hour >= start && hour < end) || (end > 24 && (hour >= start || hour < (end - 24)))) {
+            return rate;
+          }
+        }
       }
     }
   }
   
-  return null;
+  return 0; // Default to free if no rate found
 }
 
 // Calculate parking cost for a specific parking spot
@@ -125,60 +170,104 @@ export function calculateParkingCost(
 ): ParkingCalculation {
   const costBreakdown: { period: string; hours: number; rate: number; cost: number }[] = [];
   let totalCost = 0;
+  let isFirstHour = true;
+  const getsFreeFirstHour = qualifiesForFreeFirstHour(arrivalDate, spot);
   
   let currentTime = new Date(arrivalDate);
   const endTime = new Date(departureDate);
+    // Handle hourly progression pricing (like Frederiksberg)
+  if (spot.pricing_rules?.hourly_progression) {
+    const dayType = getDayType(arrivalDate);
+    let progression = spot.pricing_rules.hourly_progression.weekdays;
+    
+    if (dayType === 'saturday' && spot.pricing_rules.hourly_progression.saturday) {
+      progression = spot.pricing_rules.hourly_progression.saturday;
+    }
+    
+    if (progression) {
+      const { start: activeStart, end: activeEnd } = parseTimeRange(progression.active_hours);
+      const arrivalHour = arrivalDate.getHours() + arrivalDate.getMinutes() / 60;
+      const departureHour = departureDate.getHours() + departureDate.getMinutes() / 60;
+      
+      // Check if parking time overlaps with active hours
+      if (arrivalHour < activeEnd && departureHour > activeStart) {
+        const totalHours = Math.ceil(differenceInHours(departureDate, arrivalDate));
+        let hourlyRate = 0;
+        
+        for (let h = 1; h <= totalHours; h++) {
+          const rateIndex = Math.min(h - 1, progression.rates.length - 1);
+          hourlyRate += progression.rates[rateIndex];
+        }
+        
+        if (progression.max_daily && hourlyRate > progression.max_daily) {
+          hourlyRate = progression.max_daily;
+        }
+        
+        costBreakdown.push({
+          period: `${format(arrivalDate, 'MMM dd HH:mm')} - ${format(departureDate, 'MMM dd HH:mm')}`,
+          hours: totalHours,
+          rate: hourlyRate / totalHours,
+          cost: hourlyRate
+        });
+        
+        return {
+          spot,
+          totalCost: hourlyRate,
+          costBreakdown,
+          distance: 0
+        };
+      }
+    }
+  }
   
+  // Handle standard hourly rates
   while (currentTime < endTime) {
     const currentHour = currentTime.getHours() + currentTime.getMinutes() / 60;
-    const rule = findApplicablePricingRule(currentTime, currentHour, spot);
+    const rate = getRate(currentTime, currentHour, spot);
     
-    if (!rule) {
-      // No applicable rule found, assume free
-      currentTime = addHours(currentTime, 1);
-      continue;
-    }
+    // Calculate hours until next rate change or end time
+    let nextHour = Math.floor(currentHour) + 1;
+    if (nextHour >= 24) nextHour = 0;
     
-    // Calculate how many hours this rule applies
-    const { start, end } = parseTimeRange(rule.times);
-    const dayStart = startOfDay(currentTime);
-    const dayEnd = endOfDay(currentTime);
-    
-    let ruleEndTime: Date;
-    if (end > 24) {
-      // Overnight rule
-      ruleEndTime = new Date(dayStart);
-      ruleEndTime.setHours(end - 24, 0, 0, 0);
-      if (ruleEndTime <= currentTime) {
-        ruleEndTime = addHours(ruleEndTime, 24);
-      }
+    const nextTime = new Date(currentTime);
+    if (nextHour === 0) {
+      nextTime.setDate(nextTime.getDate() + 1);
+      nextTime.setHours(0, 0, 0, 0);
     } else {
-      ruleEndTime = new Date(dayStart);
-      ruleEndTime.setHours(end, 0, 0, 0);
+      nextTime.setHours(nextHour, 0, 0, 0);
     }
     
-    const periodEndTime = new Date(Math.min(ruleEndTime.getTime(), endTime.getTime()));
-    const hoursInPeriod = Math.max(0, differenceInHours(periodEndTime, currentTime));
+    const periodEndTime = new Date(Math.min(nextTime.getTime(), endTime.getTime()));
+    const hoursInPeriod = Math.max(0, (periodEndTime.getTime() - currentTime.getTime()) / (1000 * 60 * 60));
     
     if (hoursInPeriod > 0) {
       let periodCost = 0;
+      let actualHoursToCharge = hoursInPeriod;
       
-      if (rule.hourly_rates) {
-        // Use hourly rates
-        periodCost = calculateHourlyRateCost(hoursInPeriod, rule.hourly_rates, rule.max_daily);
-      } else if (rule.rate !== undefined) {
-        // Use flat rate
-        periodCost = hoursInPeriod * rule.rate;
+      // Apply free first hour if applicable (but not for completely free periods)
+      if (isFirstHour && getsFreeFirstHour && rate > 0 && Math.ceil(hoursInPeriod) >= 1) {
+        actualHoursToCharge = Math.max(0, hoursInPeriod - 1);
+      }
+      
+      periodCost = Math.ceil(actualHoursToCharge) * rate;
+      
+      // Create breakdown entry
+      let periodDescription = `${format(currentTime, 'MMM dd HH:mm')} - ${format(periodEndTime, 'MMM dd HH:mm')}`;
+      if (rate === 0) {
+        periodDescription += ' (gratis)';
+      } else if (isFirstHour && getsFreeFirstHour && Math.ceil(hoursInPeriod) >= 1) {
+        periodDescription += ' (første time gratis)';
       }
       
       costBreakdown.push({
-        period: `${format(currentTime, 'MMM dd HH:mm')} - ${format(periodEndTime, 'MMM dd HH:mm')}`,
+        period: periodDescription,
         hours: hoursInPeriod,
-        rate: rule.rate || 0,
+        rate: rate,
         cost: periodCost
       });
       
       totalCost += periodCost;
+      isFirstHour = false;
     }
     
     currentTime = periodEndTime;

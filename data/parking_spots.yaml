@@ -6,30 +6,22 @@ parking_spots:
       - latitude: 55.66531808872339
         longitude: 12.53922885081022
     pricing_description: |
-      Mandag - Fredag 08:00-18:00 16kr
-      Mandag - Fredag 18:00-23:00 17kr
-      Mandag - Fredag 23:00-08:00 6kr
-      Lørdag 08:00 til 17:00 16kr
-      Lørdag 17:00 til Mandag 08:00 0kr
-    pricing_standardized:
-      weekdays: # Monday - Friday
-        - times: "08:00-18:00"
-          rate: 16
-          currency: kr
-        - times: "18:00-23:00"
-          rate: 17
-          currency: kr
-        - times: "23:00-08:00"
-          rate: 6
-          currency: kr
-      saturday:
-        - times: "08:00-17:00"
-          rate: 16
-          currency: kr
-      weekend_nights: # Saturday 17:00 to Monday 08:00
-        - times: "17:00-08:00"
-          rate: 0
-          currency: kr
+      P-takst dag (kl.08-18): 26 kr./time
+      P-takst aften (kl.18-23): 17 kr./time
+      P-takst nat (kl.23-08): 6 kr./time
+      Første time gratis fra lørdag kl. 17.00 til mandag kl. 8.00
+      Helligdage er gratis (Juleaftensdag og Nytårsdag)    pricing_rules:
+      base_rates:
+        "08:00-18:00": 26
+        "18:00-23:00": 17
+        "23:00-08:00": 6
+      special_periods:
+        free_first_hour:
+          - period: "saturday_17:00_to_monday_08:00"
+            description: "Lørdag 17:00 til Mandag 08:00"
+        free_periods:
+          - dates: ["12-24", "01-01"]
+            description: "Helligdage (Juleaftensdag og Nytårsdag)"
 
   - name: Carlsberg Byen
     coordinates:
@@ -39,15 +31,12 @@ parking_spots:
       Timeprisen er pr. påbegyndt time:
       Mandag-fredag kl. 00-24: kr. 27
       Lørdag-søndag kl. 00-24: kr. 14,50
-    pricing_standardized:
-      weekdays:
-        - times: "00:00-24:00"
-          rate: 27.0
-          currency: kr
-      weekend: # Saturday and Sunday
-        - times: "00:00-24:00"
-          rate: 14.50
-          currency: kr
+    pricing_rules:
+      base_rates:
+        weekdays:
+          "00:00-24:00": 27
+        weekends:
+          "00:00-24:00": 14.50
 
   - name: Frederiksberg
     coordinates:
@@ -58,38 +47,17 @@ parking_spots:
       Lørdag 07:00 til 17:00
       Andre tider er gratis.
       Maks 110 kr per dag og 550 kr per uge
-      1. time: 5 kr
-      2. time: 10 kr
-      3. time: 15 kr
-      4. time: 20 kr
-      5. time: 25 kr
-      6. time: 25 kr
-    pricing_standardized:
-      weekdays:
-        - times: "07:00-24:00"
-          hourly_rates:
-            1: 5
-            2: 10
-            3: 15
-            4: 20
-            5: 25
-            6: 25
-          currency: kr
+      1. time: 5 kr, 2. time: 10 kr, 3. time: 15 kr
+      4. time: 20 kr, 5. time: 25 kr, 6+ time: 25 kr
+    pricing_rules:
+      hourly_progression:
+        weekdays:
+          active_hours: "07:00-24:00"
+          rates: [5, 10, 15, 20, 25, 25]
           max_daily: 110
-      saturday:
-        - times: "07:00-17:00"
-          hourly_rates:
-            1: 5
-            2: 10
-            3: 15
-            4: 20
-            5: 25
-            6: 25
-          currency: kr
-      other_times:
-        - times: "00:00-07:00" #approximation
-          rate: 0
-          currency: kr
-        - times: "17:00-00:00" #approximation
-          rate: 0
-          currency: kr
+        saturday:
+                    active_hours: "07:00-17:00"
+          rates: [5, 10, 15, 20, 25, 25]
+      free_periods:
+        - times: ["00:00-07:00", "17:00-24:00"]
+          days: ["saturday", "sunday"]

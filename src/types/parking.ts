@@ -3,32 +3,48 @@ export interface Coordinate {
   longitude: number;
 }
 
-export interface HourlyRates {
-  [hour: number]: number;
-}
-
-export interface PricingRule {
-  times: string;
-  rate?: number;
-  hourly_rates?: HourlyRates;
-  currency: string;
-  max_daily?: number;
-}
-
-export interface PricingStandardized {
-  weekdays?: PricingRule[];
-  saturday?: PricingRule[];
-  sunday?: PricingRule[];
-  weekend?: PricingRule[];
-  weekend_nights?: PricingRule[];
-  other_times?: PricingRule[];
+// Simplified pricing structure
+export interface PricingRules {
+  base_rates?: 
+    | { [timeRange: string]: number }
+    | {
+        weekdays?: { [timeRange: string]: number };
+        weekends?: { [timeRange: string]: number };
+      };
+  hourly_progression?: {
+    weekdays?: {
+      active_hours: string;
+      rates: number[];
+      max_daily?: number;
+    };
+    saturday?: {
+      active_hours: string;
+      rates: number[];
+    };
+  };
+  special_periods?: {
+    free_first_hour?: Array<{
+      period: string;
+      description: string;
+    }>;
+    free_periods?: Array<{
+      dates?: string[];
+      times?: string[];
+      days?: string[];
+      description: string;
+    }>;
+  };
+  free_periods?: Array<{
+    times: string[];
+    days: string[];
+  }>;
 }
 
 export interface ParkingSpot {
   name: string;
   coordinates: Coordinate[];
   pricing_description: string;
-  pricing_standardized: PricingStandardized;
+  pricing_rules: PricingRules;
 }
 
 export interface ParkingData {
@@ -45,4 +61,5 @@ export interface ParkingCalculation {
     cost: number;
   }[];
   distance: number;
+  searchLocation?: Coordinate;
 }

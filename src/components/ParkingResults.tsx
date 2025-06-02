@@ -1,7 +1,14 @@
 'use client'
 
 import React from 'react';
+import dynamic from 'next/dynamic';
 import { ParkingCalculation } from '@/types/parking';
+
+// Dynamically import the map component to avoid SSR issues
+const ParkingMap = dynamic(() => import('./ParkingMap'), {
+  ssr: false,
+  loading: () => <div className="h-64 w-full bg-gray-200 rounded-lg animate-pulse flex items-center justify-center">Loading map...</div>
+});
 
 interface ParkingResultsProps {
   results: ParkingCalculation[];
@@ -100,6 +107,14 @@ function ParkingCard({ result, rank }: { result: ParkingCalculation; rank: numbe
             </div>
           </details>
         )}
+      </div>
+        <div className="mt-4 pt-4 border-t">
+        <h4 className="font-semibold text-gray-700 mb-3">Location & Distance</h4>
+        <ParkingMap 
+          parkingSpot={spot}
+          searchLocation={result.searchLocation}
+          distance={distance}
+        />
       </div>
       
       <div className="mt-4 pt-4 border-t">

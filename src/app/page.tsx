@@ -45,12 +45,15 @@ export default function HomePage() {
       if (departure <= arrival) {
         throw new Error('Departure time must be after arrival time');
       }
-      
-      const calculations: ParkingCalculation[] = nearbySpots.map(spot => {
+        const calculations: ParkingCalculation[] = nearbySpots.map(spot => {
         const calculation = calculateParkingCost(spot, arrival, departure);
         return {
           ...calculation,
-          distance: spot.distance
+          distance: spot.distance,
+          searchLocation: {
+            latitude: geocodeResult.latitude,
+            longitude: geocodeResult.longitude
+          }
         };
       });
       

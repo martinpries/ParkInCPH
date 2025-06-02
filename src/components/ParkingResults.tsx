@@ -20,9 +20,8 @@ export default function ParkingResults({ results, searchAddress }: ParkingResult
     return (
       <div className="glass-card p-8 w-full max-w-4xl mx-auto mt-8">
         <div className="text-center text-white">
-          <h2 className="text-2xl font-bold mb-4">No Parking Found</h2>
-          <p className="text-white/80">
-            No parking spots found within 1km of "{searchAddress}". 
+          <h2 className="text-2xl font-bold mb-4">No Parking Found</h2>          <p className="text-white/80">
+            No parking spots found within 1km of &quot;{searchAddress}&quot;. 
             Try searching for a different location in Copenhagen.
           </p>
         </div>
@@ -32,9 +31,8 @@ export default function ParkingResults({ results, searchAddress }: ParkingResult
 
   return (
     <div className="w-full max-w-6xl mx-auto mt-8">
-      <div className="glass-card p-6 mb-6">
-        <h2 className="text-2xl font-bold text-white mb-2">
-          Parking Options Near "{searchAddress}"
+      <div className="glass-card p-6 mb-6">        <h2 className="text-2xl font-bold text-white mb-2">
+          Parking Options Near &quot;{searchAddress}&quot;
         </h2>
         <p className="text-white/80">
           Found {results.length} parking spot{results.length !== 1 ? 's' : ''} within 1km

@@ -88,7 +88,7 @@ export default function HomePage() {
           <div className="glass-card p-8 w-full max-w-2xl mx-auto mt-8">
             <div className="text-center text-white">
               <h3 className="text-xl font-bold mb-2">No Results</h3>              <p className="text-white/80">
-                No parking spots found within {lastMaxDistance}km of "{searchAddress}". 
+                No parking spots found within {lastMaxDistance}km of &quot;{searchAddress}&quot;. 
                 Try increasing the distance or a different location in Copenhagen.
               </p>
             </div>

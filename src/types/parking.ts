@@ -24,8 +24,7 @@ export interface PricingRules {
     | {
         weekdays?: { [timeRange: string]: number };
         weekends?: { [timeRange: string]: number };
-      };
-  hourly_progression?: {
+      };  hourly_progression?: {
     weekdays?: {
       active_hours: string;
       rates: number[];
@@ -34,6 +33,7 @@ export interface PricingRules {
     saturday?: {
       active_hours: string;
       rates: number[];
+      max_daily?: number;
     };
   };
   special_periods?: {

@@ -251,14 +251,16 @@ export function calculateParkingCost(
     const endTime = new Date(departureDate);
     let totalCost = 0;
     let totalChargedMinutes = 0; // Track actual charged time for hourly progression
-    let hourIndex = 0; // Track which hour rate we're on
     
-    while (currentTime < endTime) {
-      const currentHour = currentTime.getHours() + currentTime.getMinutes() / 60;
-      const dayType = getDayType(currentTime);
-      
-      // Check if we're in a free period
-      const isInFree = isInFreePeriod(currentTime, currentHour, spot);
+    // Calculate total minutes that should be charged
+    const totalMinutesInSession = Math.round((endTime.getTime() - arrivalDate.getTime()) / (1000 * 60));
+    
+    // Process each hour bracket separately
+    let remainingMinutes = totalMinutesInSession;
+    let hourIndex = 0;
+    
+    while (remainingMinutes > 0 && hourIndex < 24) { // Safety limit
+      const dayType = getDayType(arrivalDate); // Use arrival date for day type
       
       // Get appropriate progression rules for current day
       let progression = spot.pricing_rules.hourly_progression.weekdays;
@@ -266,96 +268,65 @@ export function calculateParkingCost(
         progression = spot.pricing_rules.hourly_progression.saturday;
       }
       
-      // Check if we're within active hours for this day type
-      let isInActiveHours = false;
-      if (progression) {
-        const { start: activeStart, end: activeEnd } = parseTimeRange(progression.active_hours);
-        isInActiveHours = (currentHour >= activeStart && currentHour < activeEnd) || 
-                         (activeEnd > 24 && (currentHour >= activeStart || currentHour < (activeEnd - 24)));
+      if (!progression) {
+        break; // No progression rules for this day type
       }
       
-      // Calculate time until next rate change or end time
-      let nextTime = new Date(currentTime);
-      nextTime.setMinutes(nextTime.getMinutes() + 1); // Move forward by 1 minute
+      // Check if we're within active hours (simplified - assume full session is in same period)
+      const sessionStartHour = arrivalDate.getHours() + arrivalDate.getMinutes() / 60;
+      const { start: activeStart, end: activeEnd } = parseTimeRange(progression.active_hours);
+      const isInActiveHours = (sessionStartHour >= activeStart && sessionStartHour < activeEnd) || 
+                             (activeEnd > 24 && (sessionStartHour >= activeStart || sessionStartHour < (activeEnd - 24)));
       
-      // Don't go past end time
-      if (nextTime > endTime) {
-        nextTime = new Date(endTime);
+      if (!isInActiveHours) {
+        // If not in active hours, add as free period
+        costBreakdown.push({
+          period: `${format(arrivalDate, 'MMM dd HH:mm')} - ${format(endTime, 'MMM dd HH:mm')} (uden for aktive timer)`,
+          hours: Math.round((totalMinutesInSession / 60) * 10) / 10,
+          rate: 0,
+          cost: 0
+        });
+        break;
       }
       
-      const minutesInPeriod = Math.max(0, (nextTime.getTime() - currentTime.getTime()) / (1000 * 60));
+      // Calculate minutes for this hour bracket (max 60 minutes)
+      const minutesThisHour = Math.min(remainingMinutes, 60);
       
-      if (minutesInPeriod > 0) {
-        let shouldCharge = isInActiveHours && !isInFree && !isCompletelyFree(currentTime, spot);
-        let periodCost = 0;
-        
-        if (shouldCharge && progression) {
-          // Calculate which hour rate to use based on total charged time so far
-          const currentHourRate = Math.floor(totalChargedMinutes / 60);
-          const rateIndex = Math.min(currentHourRate, progression.rates.length - 1);
-          const hourlyRate = progression.rates[rateIndex];
-          
-          // Calculate cost for this minute
-          periodCost = (minutesInPeriod / 60) * hourlyRate;
-          totalChargedMinutes += minutesInPeriod;
-          
-          // Add to breakdown if we haven't already added this hour rate
-          const currentRateHour = Math.floor((totalChargedMinutes - minutesInPeriod) / 60) + 1;
-          const newRateHour = Math.floor(totalChargedMinutes / 60) + 1;
-          
-          if (currentRateHour !== newRateHour || costBreakdown.length === 0 || 
-              costBreakdown[costBreakdown.length - 1].rate !== hourlyRate) {
-            costBreakdown.push({
-              period: `Time ${currentRateHour} (${hourlyRate} kr/time)`,
-              hours: 0, // Will be updated
-              rate: hourlyRate,
-              cost: 0 // Will be updated
-            });
-          }
-          
-          // Update the last breakdown entry
-          if (costBreakdown.length > 0) {
-            const lastEntry = costBreakdown[costBreakdown.length - 1];
-            lastEntry.hours += Math.round((minutesInPeriod / 60) * 100) / 100;
-            lastEntry.cost += Math.round(periodCost * 100) / 100;
-          }
-        } else if (!shouldCharge) {
-          // Add free period to breakdown
-          let reasonFree = '';
-          if (isCompletelyFree(currentTime, spot)) {
-            reasonFree = ' (helligdag)';
-          } else if (isInFree) {
-            reasonFree = ' (gratis periode)';
-          } else if (!isInActiveHours) {
-            reasonFree = ' (uden for aktive timer)';
-          }
-          
-          if (costBreakdown.length === 0 || !costBreakdown[costBreakdown.length - 1].period.includes(reasonFree)) {
-            costBreakdown.push({
-              period: `${format(currentTime, 'MMM dd HH:mm')}${reasonFree}`,
-              hours: 0,
-              rate: 0,
-              cost: 0
-            });
-          }
-          
-          // Update the last free entry
-          if (costBreakdown.length > 0) {
-            const lastEntry = costBreakdown[costBreakdown.length - 1];
-            if (lastEntry.rate === 0) {
-              lastEntry.hours += Math.round((minutesInPeriod / 60) * 100) / 100;
-            }
-          }
-        }
-        
-        totalCost += periodCost;
-      }
+      // Get rate for this hour bracket
+      const rateIndex = Math.min(hourIndex, progression.rates.length - 1);
+      const hourlyRate = progression.rates[rateIndex];
       
-      currentTime = nextTime;
+      // Calculate cost for this hour bracket
+      const hoursThisRate = minutesThisHour / 60;
+      const costThisHour = hoursThisRate * hourlyRate;
+      
+      // Add to breakdown
+      const hourNumber = hourIndex + 1;
+      costBreakdown.push({
+        period: `Time ${hourNumber} (${hourlyRate} kr/time)`,
+        hours: Math.round(hoursThisRate * 10) / 10,
+        rate: hourlyRate,
+        cost: Math.round(costThisHour * 10) / 10
+      });
+      
+      totalCost += costThisHour;
+      remainingMinutes -= minutesThisHour;
+      hourIndex++;
+    }
+    
+    // Handle any remaining free time due to special periods
+    if (remainingMinutes > 0) {
+      costBreakdown.push({
+        period: 'Resterende tid (gratis periode)',
+        hours: Math.round((remainingMinutes / 60) * 10) / 10,
+        rate: 0,
+        cost: 0
+      });
     }
     
     // Apply daily maximum if set
     if (spot.pricing_rules.hourly_progression.weekdays?.max_daily && totalCost > spot.pricing_rules.hourly_progression.weekdays.max_daily) {
+      const excessCost = totalCost - spot.pricing_rules.hourly_progression.weekdays.max_daily;
       totalCost = spot.pricing_rules.hourly_progression.weekdays.max_daily;
       
       // Add note about daily maximum
@@ -363,13 +334,13 @@ export function calculateParkingCost(
         period: 'Dagligt maksimum anvendt',
         hours: 0,
         rate: 0,
-        cost: -(totalCost - spot.pricing_rules.hourly_progression.weekdays.max_daily)
+        cost: Math.round(-excessCost * 10) / 10
       });
     }
 
     return {
       spot,
-      totalCost: Math.round(totalCost * 100) / 100,
+      totalCost: Math.round(totalCost * 10) / 10,
       costBreakdown,
       distance: 0
     };
@@ -432,8 +403,7 @@ export function calculateParkingCost(
             break;
         }
       }
-        
-      costBreakdown.push({
+          costBreakdown.push({
         period: periodDescription,
         hours: Math.round((minutesInPeriod / 60) * 10) / 10,
         rate: Math.round(rate * 10) / 10,

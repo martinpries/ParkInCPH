@@ -13,9 +13,39 @@ const ParkingMap = dynamic(() => import('./ParkingMap'), {
 interface ParkingResultsProps {
   results: ParkingCalculation[];
   searchAddress: string;
+  arrivalDate: string;
+  departureDate: string;
 }
 
-export default function ParkingResults({ results, searchAddress }: ParkingResultsProps) {
+export default function ParkingResults({ results, searchAddress, arrivalDate, departureDate }: ParkingResultsProps) {
+  // Calculate duration information
+  const arrival = new Date(arrivalDate);
+  const departure = new Date(departureDate);
+  const durationMs = departure.getTime() - arrival.getTime();
+  const totalHours = Math.floor(durationMs / (1000 * 60 * 60));
+  const totalMinutes = Math.floor((durationMs % (1000 * 60 * 60)) / (1000 * 60));
+  
+  // Format dates for display
+  const formatDateTime = (date: Date) => {
+    return date.toLocaleString('da-DK', {
+      weekday: 'short',
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+  
+  const formatDuration = (hours: number, minutes: number) => {
+    if (hours === 0) {
+      return `${minutes} minutter`;
+    } else if (minutes === 0) {
+      return `${hours} time${hours !== 1 ? 'r' : ''}`;
+    } else {
+      return `${hours} time${hours !== 1 ? 'r' : ''} og ${minutes} minutter`;
+    }
+  };
   if (results.length === 0) {
     return (
       <div className="glass-card p-8 w-full max-w-4xl mx-auto mt-8">
@@ -29,14 +59,38 @@ export default function ParkingResults({ results, searchAddress }: ParkingResult
     );
   }
 
-  return (
-    <div className="w-full max-w-6xl mx-auto mt-8">
-      <div className="glass-card p-6 mb-6">        <h2 className="text-2xl font-bold text-white mb-2">
+  return (    <div className="w-full max-w-6xl mx-auto mt-8">
+      <div className="glass-card p-6 mb-6">
+        <h2 className="text-2xl font-bold text-white mb-2">
           Parking Options Near &quot;{searchAddress}&quot;
         </h2>
-        <p className="text-white/80">
+        <p className="text-white/80 mb-4">
           Found {results.length} parking spot{results.length !== 1 ? 's' : ''} within 1km
         </p>
+        
+        {/* Time Summary Section */}
+        <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <div className="flex items-center space-x-2">
+                <span className="text-white/70 text-sm">Fra:</span>
+                <span className="text-white font-medium">{formatDateTime(arrival)}</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <span className="text-white/70 text-sm">Til:</span>
+                <span className="text-white font-medium">{formatDateTime(departure)}</span>
+              </div>
+            </div>
+            <div className="flex items-center justify-start md:justify-end">
+              <div className="text-center md:text-right">
+                <div className="text-white/70 text-sm">Total varighed</div>
+                <div className="text-xl font-bold text-white">
+                  {formatDuration(totalHours, totalMinutes)}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
       
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -83,28 +137,29 @@ function ParkingCard({ result, rank }: { result: ParkingCalculation; rank: numbe
           <div className="text-gray-600 text-sm">total cost</div>
         </div>
       </div>
-      
-      <div className="border-t pt-4">
+        <div className="border-t pt-4">
+        {costBreakdown.length > 0 && (
+          <div className="mb-4">
+            <details className="mb-3">
+              <summary className="cursor-pointer text-blue-600 font-medium hover:text-blue-800">
+                View Cost Breakdown
+              </summary>
+              <div className="mt-2 space-y-1">
+                {costBreakdown.map((period, idx) => (
+                  <div key={idx} className="flex justify-between text-sm bg-gray-50 p-2 rounded">
+                    <span>{period.period}</span>
+                    <span>{period.hours}h × {period.rate}kr = {period.cost.toFixed(0)}kr</span>
+                  </div>
+                ))}
+              </div>
+            </details>
+          </div>
+        )}
+        
         <h4 className="font-semibold text-gray-700 mb-2">Pricing Details:</h4>
         <div className="text-sm text-gray-600 whitespace-pre-line mb-3">
           {spot.pricing_description}
         </div>
-        
-        {costBreakdown.length > 0 && (
-          <details className="mt-3">
-            <summary className="cursor-pointer text-blue-600 font-medium hover:text-blue-800">
-              View Cost Breakdown
-            </summary>
-            <div className="mt-2 space-y-1">
-              {costBreakdown.map((period, idx) => (
-                <div key={idx} className="flex justify-between text-sm bg-gray-50 p-2 rounded">
-                  <span>{period.period}</span>
-                  <span>{period.hours}h × {period.rate}kr = {period.cost.toFixed(0)}kr</span>
-                </div>
-              ))}
-            </div>
-          </details>
-        )}
       </div>
         <div className="mt-4 pt-4 border-t">
         <h4 className="font-semibold text-gray-700 mb-3">Location & Distance</h4>
@@ -114,10 +169,21 @@ function ParkingCard({ result, rank }: { result: ParkingCalculation; rank: numbe
           distance={distance}
         />
       </div>
-      
-      <div className="mt-4 pt-4 border-t">
+        <div className="mt-4 pt-4 border-t">
         <div className="text-xs text-gray-500">
-          Coordinates: {spot.coordinates.map(c => `${c.latitude.toFixed(4)}, ${c.longitude.toFixed(4)}`).join(' | ')}
+          {/* Display coordinates based on area type */}
+          {spot.coordinates && (
+            <>Coordinates: {spot.coordinates.map(c => `${c.latitude.toFixed(4)}, ${c.longitude.toFixed(4)}`).join(' | ')}</>
+          )}
+          {spot.polygon_coordinates && (
+            <>Area: {spot.polygon_coordinates.length} points</>
+          )}
+          {spot.bounds && (
+            <>Rectangle: {spot.bounds.south.toFixed(4)}-{spot.bounds.north.toFixed(4)}, {spot.bounds.west.toFixed(4)}-{spot.bounds.east.toFixed(4)}</>
+          )}
+          {spot.circle_area && (
+            <>Circle: {spot.circle_area.center.latitude.toFixed(4)}, {spot.circle_area.center.longitude.toFixed(4)} (r:{spot.circle_area.radius}m)</>
+          )}
         </div>
       </div>
     </div>

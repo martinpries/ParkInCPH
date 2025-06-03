@@ -3,15 +3,28 @@ export interface Coordinate {
   longitude: number;
 }
 
+export interface Bounds {
+  north: number;
+  south: number;
+  east: number;
+  west: number;
+}
+
+export interface CircleArea {
+  center: Coordinate;
+  radius: number; // in meters
+}
+
 // Simplified pricing structure
 export interface PricingRules {
+  // Billing granularity: how time is calculated
+  billing_method?: 'per_minute' | 'per_started_hour' | 'per_15_minutes' | 'per_30_minutes';
   base_rates?: 
     | { [timeRange: string]: number }
     | {
         weekdays?: { [timeRange: string]: number };
         weekends?: { [timeRange: string]: number };
-      };
-  hourly_progression?: {
+      };  hourly_progression?: {
     weekdays?: {
       active_hours: string;
       rates: number[];
@@ -20,6 +33,7 @@ export interface PricingRules {
     saturday?: {
       active_hours: string;
       rates: number[];
+      max_daily?: number;
     };
   };
   special_periods?: {
@@ -42,7 +56,15 @@ export interface PricingRules {
 
 export interface ParkingSpot {
   name: string;
-  coordinates: Coordinate[];
+  // Support different area types
+  area_type?: 'points' | 'polygon' | 'rectangle' | 'circle' | 'triangle';
+  // Legacy support for point-based coordinates
+  coordinates?: Coordinate[];
+  // New area definitions
+  polygon_coordinates?: Coordinate[];
+  triangle_coordinates?: [Coordinate, Coordinate, Coordinate]; // Exactly 3 points for triangle
+  bounds?: Bounds;
+  circle_area?: CircleArea;
   pricing_description: string;
   pricing_rules: PricingRules;
 }

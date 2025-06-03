@@ -1,0 +1,105 @@
+# Example parking spots with different area types
+parking_spots:
+  # Original point-based parking (legacy support)
+  - name: København Vesterbro (Points)
+    area_type: points
+    coordinates:
+      - latitude: 55.66519526124639
+        longitude: 12.54353968489107
+      - latitude: 55.66531808872339
+        longitude: 12.53922885081022
+    pricing_description: |
+      P-takst dag (kl.08-18): 26 kr./time
+      P-takst aften (kl.18-23): 17 kr./time
+      P-takst nat (kl.23-08): 6 kr./time
+      Første time gratis fra lørdag kl. 17.00 til mandag kl. 8.00
+      Helligdage er gratis (Juleaftensdag og Nytårsdag)
+    pricing_rules:
+      base_rates:
+        "08:00-18:00": 26
+        "18:00-23:00": 17
+        "23:00-08:00": 6
+      special_periods:
+        free_first_hour:
+          - period: "saturday_17:00_to_monday_08:00"
+            description: "Lørdag 17:00 til Mandag 08:00"
+        free_periods:
+          - dates: ["12-24", "01-01"]
+            description: "Helligdage (Juleaftensdag og Nytårsdag)"
+
+  # Polygon-shaped parking area
+  - name: Carlsberg Byen (Polygon Area)
+    area_type: polygon
+    polygon_coordinates:
+      - latitude: 55.666255
+        longitude: 12.536256
+      - latitude: 55.667255
+        longitude: 12.537256
+      - latitude: 55.667755
+        longitude: 12.536756
+      - latitude: 55.666755
+        longitude: 12.535756
+    pricing_description: |
+      Timeprisen er pr. påbegyndt time:
+      Mandag-fredag kl. 00-24: kr. 27
+      Lørdag-søndag kl. 00-24: kr. 14,50
+    pricing_rules:
+      base_rates:
+        weekdays:
+          "00:00-24:00": 27
+        weekends:
+          "00:00-24:00": 14.50
+
+  # Rectangle-shaped parking area
+  - name: Frederiksberg (Rectangle Zone)
+    area_type: rectangle
+    bounds:
+      north: 55.669866
+      south: 55.667866
+      east: 12.531515
+      west: 12.529515
+    pricing_description: |
+      Mandag til Fredag 07:00 til 24:00
+      Lørdag 07:00 til 17:00
+      Andre tider er gratis.
+      Maks 110 kr per dag og 550 kr per uge
+      1. time: 5 kr, 2. time: 10 kr, 3. time: 15 kr
+      4. time: 20 kr, 5. time: 25 kr, 6+ time: 25 kr
+    pricing_rules:
+      hourly_progression:
+        weekdays:
+          active_hours: "07:00-24:00"
+          rates: [5, 10, 15, 20, 25, 25]
+          max_daily: 110
+        saturday:
+          active_hours: "07:00-17:00"
+          rates: [5, 10, 15, 20, 25, 25]
+      free_periods:
+        - times: ["00:00-07:00", "17:00-24:00"]
+          days: ["saturday", "sunday"]
+
+  # Circle-shaped parking area
+  - name: Nørrebro (Circle Zone)
+    area_type: circle
+    circle_area:
+      center:
+        latitude: 55.68866
+        longitude: 12.55515
+      radius: 150  # meters
+    pricing_description: |
+      Circular parking zone in Nørrebro
+      Standard rates apply during business hours
+      Free parking on Sundays
+    pricing_rules:
+      base_rates:
+        weekdays:
+          "08:00-18:00": 20
+          "18:00-24:00": 12
+          "00:00-08:00": 0
+        weekends:
+          "08:00-18:00": 15
+          "18:00-24:00": 10
+          "00:00-08:00": 0
+      free_periods:
+        - times: ["00:00-24:00"]
+          days: ["sunday"]

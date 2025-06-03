@@ -1,0 +1,115 @@
+parking_spots:
+  - name: København Vesterbro
+    area_type: polygon
+    polygon_coordinates:
+      - latitude: 55.66519526124639
+        longitude: 12.54353968489107
+      - latitude: 55.66531808872339
+        longitude: 12.53922885081022
+      - latitude: 55.66445123456789
+        longitude: 12.53955678901234
+      - latitude: 55.66507891234567
+        longitude: 12.54387890123456
+    pricing_description: |
+      P-takst dag (kl.08-18): 26 kr./time
+      P-takst aften (kl.18-23): 17 kr./time
+      P-takst nat (kl.23-08): 6 kr./time
+      Første time gratis fra lørdag kl. 17.00 til mandag kl. 8.00
+      Helligdage er gratis (Juleaftensdag og Nytårsdag)
+      Betaling per minut
+    pricing_rules:
+      billing_method: per_minute
+      base_rates:
+        "08:00-18:00": 26
+        "18:00-23:00": 17
+        "23:00-08:00": 6
+      special_periods:
+        free_first_hour:
+          - period: "saturday_17:00_to_monday_08:00"
+            description: "Lørdag 17:00 til Mandag 08:00"
+        free_periods:
+          - dates: ["12-24", "01-01"]
+            description: "Helligdage (Juleaftensdag og Nytårsdag)"
+
+  - name: Carlsberg Byen
+    area_type: rectangle
+    bounds:
+      north: 55.66775509070274
+      south: 55.66575509070274
+      east: 12.546756465807024
+      west: 12.526756465807024
+    pricing_description: |
+      Timeprisen er pr. påbegyndt time:
+      Mandag-fredag kl. 00-24: kr. 27
+      Lørdag-søndag kl. 00-24: kr. 14,50
+      Betaling per minut
+    pricing_rules:
+      billing_method: per_minute
+      base_rates:
+        weekdays:
+          "00:00-24:00": 27
+        weekends:
+          "00:00-24:00": 14.50
+
+  - name: Frederiksberg
+    area_type: circle
+    circle_area:
+      center:
+        latitude: 55.668866103512826
+        longitude: 12.530515569648486
+      radius: 300
+    pricing_description: |
+      Mandag til Fredag 07:00 til 24:00
+      Lørdag 07:00 til 17:00
+      Andre tider er gratis.
+      Maks 110 kr per dag og 550 kr per uge
+      1. time: 5 kr, 2. time: 10 kr, 3. time: 15 kr
+      4. time: 20 kr, 5. time: 25 kr, 6+ time: 25 kr
+      Betaling per minut
+    pricing_rules:
+      billing_method: per_minute
+      hourly_progression:
+        weekdays:
+          active_hours: "07:00-24:00"
+          rates: [5, 10, 15, 20, 25, 25]
+          max_daily: 110
+        saturday:
+          active_hours: "07:00-17:00"
+          rates: [5, 10, 15, 20, 25, 25]
+      free_periods:
+        - times: ["00:00-07:00", "17:00-24:00"]
+          days: ["saturday", "sunday"]
+
+
+  - name: Frederiksberg1 (Pile Alle, Rahbeks Alle, Vesterbrogade)
+    area_type: polygon
+    polygon_coordinates:
+      - latitude: 55.66844366275808
+        longitude: 12.530476962817097
+      - latitude: 55.67034327426567
+        longitude: 12.53775897914469
+      - latitude: 55.670812967050296
+        longitude: 12.53107397024391
+      - latitude: 55.680812967050296
+        longitude: 12.55107397024391
+    pricing_description: |
+      Mandag til Fredag 07:00 til 24:00
+      Lørdag 07:00 til 17:00
+      Andre tider er gratis.
+      Maks 110 kr per dag og 550 kr per uge
+      1. time: 5 kr, 2. time: 10 kr, 3. time: 15 kr
+      4. time: 20 kr, 5. time: 25 kr, 6+ time: 25 kr
+      Betaling per minut
+    pricing_rules:
+      billing_method: per_minute
+      hourly_progression:
+        weekdays:
+          active_hours: "07:00-24:00"
+          rates: [5, 10, 15, 20, 25, 25]
+          max_daily: 110
+        saturday:
+          active_hours: "07:00-17:00"
+          rates: [5, 10, 15, 20, 25, 25]
+      free_periods:
+        - times: ["00:00-07:00", "17:00-24:00"]
+          days: ["saturday", "sunday"]

@@ -17,6 +17,8 @@ export interface CircleArea {
 
 // Simplified pricing structure
 export interface PricingRules {
+  // Billing granularity: how time is calculated
+  billing_method?: 'per_minute' | 'per_started_hour' | 'per_15_minutes' | 'per_30_minutes';
   base_rates?: 
     | { [timeRange: string]: number }
     | {
@@ -55,7 +57,7 @@ export interface PricingRules {
 export interface ParkingSpot {
   name: string;
   // Support different area types
-  area_type?: 'points' | 'polygon' | 'rectangle' | 'circle';
+  area_type?: 'points' | 'polygon' | 'rectangle' | 'circle' | 'triangle';
   // Legacy support for point-based coordinates
   coordinates?: Coordinate[];
   // New area definitions

@@ -3,13 +3,11 @@ import { ParkingData } from '@/types/parking';
 export async function loadParkingData(): Promise<ParkingData> {
   try {
     // In a real application, this would load from the YAML file
-    // For now, we'll return the data that includes examples of different area types
+    // For now, we'll return the data that matches our YAML structure
     const parkingData: ParkingData = {
       parking_spots: [
-        // Original point-based parking (legacy support)
         {
-          name: "København Vesterbro (Points)",
-          area_type: "points",
+          name: "København Vesterbro",
           coordinates: [
             { latitude: 55.66519526124639, longitude: 12.54353968489107 },
             { latitude: 55.66531808872339, longitude: 12.53922885081022 }
@@ -35,16 +33,12 @@ export async function loadParkingData(): Promise<ParkingData> {
                 }
               ]
             }
-          }        },
-        // Polygon-shaped parking area
+          }
+        },
         {
-          name: "Carlsberg Byen (Polygon Area)",
-          area_type: "polygon",
-          polygon_coordinates: [
-            { latitude: 55.666255, longitude: 12.536256 },
-            { latitude: 55.667255, longitude: 12.537256 },
-            { latitude: 55.667755, longitude: 12.536756 },
-            { latitude: 55.666755, longitude: 12.535756 }
+          name: "Carlsberg Byen",
+          coordinates: [
+            { latitude: 55.66675509070274, longitude: 12.536756465807024 }
           ],
           pricing_description: "Timeprisen er pr. påbegyndt time:\nMandag-fredag kl. 00-24: kr. 27\nLørdag-søndag kl. 00-24: kr. 14,50",
           pricing_rules: {
@@ -58,16 +52,11 @@ export async function loadParkingData(): Promise<ParkingData> {
             }
           }
         },
-        // Rectangle-shaped parking area
         {
-          name: "Frederiksberg (Rectangle Zone)",
-          area_type: "rectangle",
-          bounds: {
-            north: 55.669866,
-            south: 55.667866,
-            east: 12.531515,
-            west: 12.529515
-          },
+          name: "Frederiksberg",
+          coordinates: [
+            { latitude: 55.668866103512826, longitude: 12.530515569648486 }
+          ],
           pricing_description: "Mandag til Fredag 07:00 til 24:00\nLørdag 07:00 til 17:00\nAndre tider er gratis.\nMaks 110 kr per dag og 550 kr per uge\n1. time: 5 kr, 2. time: 10 kr, 3. time: 15 kr\n4. time: 20 kr, 5. time: 25 kr, 6+ time: 25 kr",
           pricing_rules: {
             hourly_progression: {
@@ -85,39 +74,6 @@ export async function loadParkingData(): Promise<ParkingData> {
               {
                 times: ["00:00-07:00", "17:00-24:00"],
                 days: ["saturday", "sunday"]
-              }
-            ]
-          }
-        },
-        // Circle-shaped parking area
-        {
-          name: "Nørrebro (Circle Zone)",
-          area_type: "circle",
-          circle_area: {
-            center: {
-              latitude: 55.68866,
-              longitude: 12.55515
-            },
-            radius: 150  // meters
-          },
-          pricing_description: "Circular parking zone in Nørrebro\nStandard rates apply during business hours\nFree parking on Sundays",
-          pricing_rules: {
-            base_rates: {
-              weekdays: {
-                "08:00-18:00": 20,
-                "18:00-24:00": 12,
-                "00:00-08:00": 0
-              },
-              weekends: {
-                "08:00-18:00": 15,
-                "18:00-24:00": 10,
-                "00:00-08:00": 0
-              }
-            },
-            free_periods: [
-              {
-                times: ["00:00-24:00"],
-                days: ["sunday"]
               }
             ]
           }

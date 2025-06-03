@@ -99,6 +99,40 @@ export async function loadParkingData(): Promise<ParkingData> {
                   description: "Helligdage (Juleaftensdag og Nytårsdag)"
                 }
               ]
+            }          }
+        },
+        {
+          name: "Vesterbro Nord",
+          area_type: "polygon",
+          polygon_coordinates: [
+            { latitude: 55.66784682158415, longitude: 12.529708232855512 },
+            { latitude: 55.66749326188485, longitude: 12.530075191501234 },
+            { latitude: 55.66691548672035, longitude: 12.527032492730442 },
+            { latitude: 55.664043731315786, longitude: 12.528301558046438 },
+            { latitude: 55.66397473761514, longitude: 12.521635142601433 },
+            { latitude: 55.66653604763404, longitude: 12.521833911860423 }
+          ],
+          pricing_description: "P-takst dag (kl.08-18): 26 kr./time\nP-takst aften (kl.18-23): 17 kr./time\nP-takst nat (kl.23-08): 6 kr./time\nFørste time gratis fra lørdag kl. 17.00 til mandag kl. 8.00\nHelligdage er gratis (Juleaftensdag og Nytårsdag)",
+          pricing_rules: {
+            billing_method: "per_minute",
+            base_rates: {
+              "08:00-18:00": 26,
+              "18:00-23:00": 17,
+              "23:00-08:00": 6
+            },
+            special_periods: {
+              free_first_hour: [
+                {
+                  period: "saturday_17:00_to_monday_08:00",
+                  description: "Lørdag 17:00 til Mandag 08:00"
+                }
+              ],
+              free_periods: [
+                {
+                  dates: ["12-24", "01-01"],
+                  description: "Helligdage (Juleaftensdag og Nytårsdag)"
+                }
+              ]
             }
           }
         },

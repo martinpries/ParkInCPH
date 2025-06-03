@@ -13,9 +13,39 @@ const ParkingMap = dynamic(() => import('./ParkingMap'), {
 interface ParkingResultsProps {
   results: ParkingCalculation[];
   searchAddress: string;
+  arrivalDate: string;
+  departureDate: string;
 }
 
-export default function ParkingResults({ results, searchAddress }: ParkingResultsProps) {
+export default function ParkingResults({ results, searchAddress, arrivalDate, departureDate }: ParkingResultsProps) {
+  // Calculate duration information
+  const arrival = new Date(arrivalDate);
+  const departure = new Date(departureDate);
+  const durationMs = departure.getTime() - arrival.getTime();
+  const totalHours = Math.floor(durationMs / (1000 * 60 * 60));
+  const totalMinutes = Math.floor((durationMs % (1000 * 60 * 60)) / (1000 * 60));
+  
+  // Format dates for display
+  const formatDateTime = (date: Date) => {
+    return date.toLocaleString('da-DK', {
+      weekday: 'short',
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+  
+  const formatDuration = (hours: number, minutes: number) => {
+    if (hours === 0) {
+      return `${minutes} minutter`;
+    } else if (minutes === 0) {
+      return `${hours} time${hours !== 1 ? 'r' : ''}`;
+    } else {
+      return `${hours} time${hours !== 1 ? 'r' : ''} og ${minutes} minutter`;
+    }
+  };
   if (results.length === 0) {
     return (
       <div className="glass-card p-8 w-full max-w-4xl mx-auto mt-8">
@@ -29,14 +59,38 @@ export default function ParkingResults({ results, searchAddress }: ParkingResult
     );
   }
 
-  return (
-    <div className="w-full max-w-6xl mx-auto mt-8">
-      <div className="glass-card p-6 mb-6">        <h2 className="text-2xl font-bold text-white mb-2">
+  return (    <div className="w-full max-w-6xl mx-auto mt-8">
+      <div className="glass-card p-6 mb-6">
+        <h2 className="text-2xl font-bold text-white mb-2">
           Parking Options Near &quot;{searchAddress}&quot;
         </h2>
-        <p className="text-white/80">
+        <p className="text-white/80 mb-4">
           Found {results.length} parking spot{results.length !== 1 ? 's' : ''} within 1km
         </p>
+        
+        {/* Time Summary Section */}
+        <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <div className="flex items-center space-x-2">
+                <span className="text-white/70 text-sm">Fra:</span>
+                <span className="text-white font-medium">{formatDateTime(arrival)}</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <span className="text-white/70 text-sm">Til:</span>
+                <span className="text-white font-medium">{formatDateTime(departure)}</span>
+              </div>
+            </div>
+            <div className="flex items-center justify-start md:justify-end">
+              <div className="text-center md:text-right">
+                <div className="text-white/70 text-sm">Total varighed</div>
+                <div className="text-xl font-bold text-white">
+                  {formatDuration(totalHours, totalMinutes)}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
       
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

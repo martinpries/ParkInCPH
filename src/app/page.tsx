@@ -9,16 +9,16 @@ import { geocodeAddress } from '@/utils/geocoding';
 import { filterParkingSpotsWithinRadius } from '@/utils/distance';
 import { calculateParkingCost } from '@/utils/parkingCalculator';
 
-export default function HomePage() {
-  const [results, setResults] = useState<ParkingCalculation[]>([]);
+export default function HomePage() {  const [results, setResults] = useState<ParkingCalculation[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [searchAddress, setSearchAddress] = useState('');
   const [lastMaxDistance, setLastMaxDistance] = useState(1);
-  const [error, setError] = useState<string | null>(null);  const handleSearch = async (address: string, arrivalDate: string, departureDate: string, maxDistance: number) => {
-    setIsLoading(true);
+  const [error, setError] = useState<string | null>(null);
+  const [searchDates, setSearchDates] = useState<{ arrival: string; departure: string } | null>(null);const handleSearch = async (address: string, arrivalDate: string, departureDate: string, maxDistance: number) => {    setIsLoading(true);
     setError(null);
     setSearchAddress(address);
     setLastMaxDistance(maxDistance);
+    setSearchDates({ arrival: arrivalDate, departure: departureDate });
     
     try {
       // Geocode the address
@@ -79,9 +79,13 @@ export default function HomePage() {
             </div>
           </div>
         )}
-        
-        {results.length > 0 && (
-          <ParkingResults results={results} searchAddress={searchAddress} />
+          {results.length > 0 && searchDates && (
+          <ParkingResults 
+            results={results} 
+            searchAddress={searchAddress}
+            arrivalDate={searchDates.arrival}
+            departureDate={searchDates.departure}
+          />
         )}
         
         {!isLoading && results.length === 0 && !error && searchAddress && (

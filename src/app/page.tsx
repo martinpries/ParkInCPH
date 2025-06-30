@@ -1,6 +1,7 @@
 'use client'
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import SearchForm from '@/components/SearchForm';
 import ParkingResults from '@/components/ParkingResults';
 import { ParkingCalculation } from '@/types/parking';
@@ -9,16 +10,38 @@ import { geocodeAddress } from '@/utils/geocoding';
 import { filterParkingSpotsWithinRadius } from '@/utils/distance';
 import { calculateParkingCost } from '@/utils/parkingCalculator';
 
-export default function HomePage() {  const [results, setResults] = useState<ParkingCalculation[]>([]);
+function HomePageContent() {  const [results, setResults] = useState<ParkingCalculation[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [searchAddress, setSearchAddress] = useState('');
   const [lastMaxDistance, setLastMaxDistance] = useState(1);
   const [error, setError] = useState<string | null>(null);
-  const [searchDates, setSearchDates] = useState<{ arrival: string; departure: string } | null>(null);const handleSearch = async (address: string, arrivalDate: string, departureDate: string, maxDistance: number) => {    setIsLoading(true);
+  const [searchDates, setSearchDates] = useState<{ arrival: string; departure: string } | null>(null);
+  
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const [initialAddress, setInitialAddress] = useState('');
+
+  // Read address from URL parameters on page load
+  useEffect(() => {
+    const addressFromUrl = searchParams.get('address');
+    if (addressFromUrl) {
+      setInitialAddress(decodeURIComponent(addressFromUrl));
+    }
+  }, [searchParams]);
+
+  const handleSearch = async (address: string, arrivalDate: string, departureDate: string, maxDistance: number) => {    setIsLoading(true);
     setError(null);
     setSearchAddress(address);
     setLastMaxDistance(maxDistance);
     setSearchDates({ arrival: arrivalDate, departure: departureDate });
+    
+    // Update URL with address parameter for sharing
+    const params = new URLSearchParams();
+    if (address.trim()) {
+      params.set('address', encodeURIComponent(address.trim()));
+    }
+    const newUrl = params.toString() ? `?${params.toString()}` : '/';
+    router.replace(newUrl, { scroll: false });
     
     try {
       // Geocode the address
@@ -69,7 +92,7 @@ export default function HomePage() {  const [results, setResults] = useState<Par
   return (
     <div className="min-h-screen p-4">
       <div className="container mx-auto">
-        <SearchForm onSearch={handleSearch} isLoading={isLoading} />
+        <SearchForm onSearch={handleSearch} isLoading={isLoading} initialAddress={initialAddress} />
         
         {error && (
           <div className="glass-card p-6 w-full max-w-2xl mx-auto mt-8">
@@ -100,5 +123,13 @@ export default function HomePage() {  const [results, setResults] = useState<Par
         )}
       </div>
     </div>
+  );
+}
+
+export default function HomePage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen p-4"><div className="container mx-auto"><div className="glass-card p-8 w-full max-w-2xl mx-auto"><div className="text-center text-white">Loading...</div></div></div></div>}>
+      <HomePageContent />
+    </Suspense>
   );
 }

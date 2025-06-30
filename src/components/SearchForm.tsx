@@ -5,9 +5,10 @@ import React from 'react';
 interface SearchFormProps {
   onSearch: (address: string, arrivalDate: string, departureDate: string, maxDistance: number) => void;
   isLoading: boolean;
+  initialAddress?: string;
 }
 
-export default function SearchForm({ onSearch, isLoading }: SearchFormProps) {  const [address, setAddress] = React.useState('');
+export default function SearchForm({ onSearch, isLoading, initialAddress = '' }: SearchFormProps) {  const [address, setAddress] = React.useState('');
   const [arrivalDate, setArrivalDate] = React.useState('');
   const [departureDate, setDepartureDate] = React.useState('');
   const [maxDistance, setMaxDistance] = React.useState(1); // Default 1 km
@@ -24,6 +25,13 @@ export default function SearchForm({ onSearch, isLoading }: SearchFormProps) {  
     setArrivalDate(formatDateTime(now));
     setDepartureDate(formatDateTime(later));
   }, []);
+  
+  // Set initial address when provided
+  React.useEffect(() => {
+    if (initialAddress) {
+      setAddress(initialAddress);
+    }
+  }, [initialAddress]);
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (address && arrivalDate && departureDate) {

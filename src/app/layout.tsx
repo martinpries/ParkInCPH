@@ -1,7 +1,7 @@
 import './globals.css'
-import { Inter } from 'next/font/google'
+// import { Inter } from 'next/font/google'
 
-const inter = Inter({ subsets: ['latin'] })
+// const inter = Inter({ subsets: ['latin'] })
 
 export const metadata = {
   title: 'ParkInCPH - Find Parking in Copenhagen',
@@ -23,7 +23,7 @@ export default function RootLayout({
           crossOrigin=""
         />
       </head>
-      <body className={inter.className}>
+      <body className="font-sans">
         <div className="min-h-screen">
           {children}
         </div>

@@ -98,6 +98,17 @@ export default function HomePage() {  const [results, setResults] = useState<Par
             </div>
           </div>
         )}
+        
+        {/* Date footer */}
+        <div className="mt-16 text-center">
+          <p className="text-white/60 text-sm">
+            {new Date().toLocaleDateString('en-US', { 
+              year: 'numeric', 
+              month: 'long', 
+              day: 'numeric' 
+            })}
+          </p>
+        </div>
       </div>
     </div>
   );
